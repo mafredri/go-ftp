@@ -58,6 +58,8 @@ type dialOptions struct {
 	location    *time.Location
 	debugOutput io.Writer
 	dialFunc    func(network, address string) (net.Conn, error)
+
+	disableFeat bool
 }
 
 // Entry describes a file and is returned by List().
@@ -175,6 +177,14 @@ func DialWithDisabledUTF8(disabled bool) DialOption {
 	}}
 }
 
+// DialWithDisabledFeat disables initial feat check on connect. Useful
+// for FTP servers that require login first.
+func DialWithDisabledFeat(disabled bool) DialOption {
+	return DialOption{func(do *dialOptions) {
+		do.disableFeat = disabled
+	}}
+}
+
 // DialWithLocation returns a DialOption that configures the ServerConn with specified time.Location
 // The location is used to parse the dates sent by the server which are in server's timezone
 func DialWithLocation(location *time.Location) DialOption {
@@ -273,16 +283,18 @@ func (c *ServerConn) Login(user, password string) error {
 		return errors.New(message)
 	}
 
-	// Probe features
-	err = c.feat()
-	if err != nil {
-		return err
-	}
-	if _, mlstSupported := c.features["MLST"]; mlstSupported {
-		c.mlstSupported = true
-	}
-	if _, usePRET := c.features["PRET"]; usePRET {
-		c.usePRET = true
+	if !c.options.disableFeat {
+		// Probe features
+		err = c.feat()
+		if err != nil {
+			return err
+		}
+		if _, mlstSupported := c.features["MLST"]; mlstSupported {
+			c.mlstSupported = true
+		}
+		if _, usePRET := c.features["PRET"]; usePRET {
+			c.usePRET = true
+		}
 	}
 
 	// Switch to binary mode
