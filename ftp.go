@@ -820,6 +820,11 @@ func (c *ServerConn) Logout() error {
 	return err
 }
 
+// Conn exposes the underlying textproto.Conn.
+func (c *ServerConn) Conn() *textproto.Conn {
+	return c.conn
+}
+
 // Quit issues a QUIT FTP command to properly close the connection from the
 // remote FTP server.
 func (c *ServerConn) Quit() error {
